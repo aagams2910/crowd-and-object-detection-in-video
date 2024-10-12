@@ -1,4 +1,5 @@
 Make sure you install ultralytics library:
+
 pip install ultralytics
 
 Once you have ultralytics installed, you can load any of the YOLO models 
