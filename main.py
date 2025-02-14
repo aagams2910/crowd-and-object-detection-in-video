@@ -4,7 +4,7 @@ from people_detector import PeopleDetector
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Pedestrian Detection using YOLO")
-    parser.add_argument('--video', type=str, required=True, help="Path to the video file.")
+    parser.add_argument('--video', type=str, default='railwayvid.mp4', help="Path to the video file.")
     parser.add_argument('--model', type=str, default='yolov5s.pt', help="Path to the YOLO model.")
     parser.add_argument('--output', type=str, default='output.avi', help="Path to save the processed video.")
     return parser.parse_args()
