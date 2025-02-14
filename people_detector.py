@@ -7,11 +7,11 @@ import csv
 from pathlib import Path
 
 class PeopleDetector:
-    def __init__(self, model_path: str, video_source: str, confidence_threshold=0.05):
+    def __init__(self, model_path: str, video_source: str = "path/to/your/video.mp4", confidence_threshold=0.05):
         self.count = 0
         self.video_source = video_source
         self.confidence_threshold = confidence_threshold
-        self.cap = cv2.VideoCapture(video_source)
+        self.cap = cv2.VideoCapture(self.video_source)
         self.model = self.initialize_model(model_path)
         self.log_file = Path('detections.csv')
         self.setup_logging()
