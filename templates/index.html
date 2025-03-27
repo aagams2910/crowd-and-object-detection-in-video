@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crowd Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .video-container {
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-feed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .alert-banner {
+            display: none;
+            background-color: #ff4136;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .floor-btn {
+            width: 100%;
+            margin-bottom: 8px;
+            font-weight: bold;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+        .floor-btn.active {
+            background-color: #0d6efd;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .management-card {
+            background-color: #f1f8ff;
+        }
+        h1 {
+            margin-bottom: 25px;
+            color: #0d6efd;
+        }
+        .solution-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #e9f7ef;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        .solution-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .solution-icon {
+            font-size: 1.8rem;
+            color: #27ae60;
+            margin-right: 15px;
+            min-width: 40px;
+            text-align: center;
+        }
+        .solution-content {
+            flex: 1;
+        }
+        .solution-item h5 {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .solution-item p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .solution-container {
+            min-height: 150px;
+        }
+        .powered-by {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 10px;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Mall Crowd Detection System</h1>
+        
+        <div class="alert-banner" id="crowdAlert">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-9">
+                        <h4 class="mb-0">⚠️ ALERT: High crowd density detected! ⚠️</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-light" id="actionBtn">Take Action</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between">
+                        <h5 class="mb-0">Live Surveillance: <span id="currentFloor">{{ current_floor }}</span></h5>
+                        <span id="peopleCount" class="badge bg-danger">Analyzing...</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="video-container">
+                            <img src="{{ url_for('video_feed') }}" class="video-feed">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Floor Selection</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="floorButtons">
+                            {% for floor in floor_options %}
+                                <button class="btn btn-outline-primary floor-btn {% if floor == current_floor %}active{% endif %}" 
+                                        data-floor="{{ floor }}">
+                                    {{ floor }}
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Crowd Threshold Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="thresholdInput">Crowd Alert Threshold:</label>
+                            <input type="number" class="form-control" id="thresholdInput" value="{{ threshold }}">
+                            <small class="form-text text-muted">Alert will trigger when people count exceeds this value</small>
+                        </div>
+                        <button class="btn btn-success mt-2 w-100" id="updateThresholdBtn">Update Threshold</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card management-card">
+                    <div class="card-header bg-success text-white d-flex justify-content-between">
+                        <h5 class="mb-0">Crowd Management Solutions</h5>
+                        <span class="badge bg-info" id="solutionStatus">Waiting...</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="solutionsContainer" class="solution-container">
+                            <!-- Dynamic solutions will be loaded here -->
+                            <div class="text-center">
+                                <p class="text-muted">Solutions will appear when crowd threshold is exceeded</p>
+                            </div>
+                        </div>
+                        <div class="powered-by">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const BASE_URL = 'http://127.0.0.1:49152';  // Updated port
+            
+            function checkStatus() {
+                $.getJSON(`${BASE_URL}/status`, function(data) {
+                    // Update alert banner
+                    if (data.alert) {
+                        $('#crowdAlert').fadeIn();
+                        $('#solutionStatus').text('Active').removeClass('bg-info').addClass('bg-warning');
+                    } else {
+                        $('#crowdAlert').fadeOut();
+                        $('#solutionStatus').text('Standby').removeClass('bg-warning').addClass('bg-info');
+                    }
+                    
+                    // Update floor and threshold display
+                    $('#currentFloor').text(data.current_floor);
+                    $('#thresholdInput').val(data.threshold);
+                    
+                    // Update solutions
+                    if (data.solutions && data.solutions.length > 0) {
+                        updateSolutions(data.solutions);
+                    }
+                }).fail(function() {
+                    console.error("Failed to fetch status");
+                });
+            }
+            
+            function updateSolutions(solutions) {
+                const container = $('#solutionsContainer');
+                container.empty();
+                
+                // Array of icons to use for different solution types
+                const icons = [
+                    'fa-arrow-right-arrow-left', // Traffic redirection
+                    'fa-user-group',             // Staff/people management
+                    'fa-door-open',              // Entry/exit control
+                    'fa-route'                   // Alternate routes
+                ];
+                
+                solutions.forEach((solution, index) => {
+                    // Choose icon based on title keywords or default to index
+                    let iconClass = icons[index % icons.length];
+                    
+                    // Try to assign more appropriate icon based on solution title
+                    const title = solution.title.toLowerCase();
+                    if (title.includes('traffic') || title.includes('flow') || title.includes('redirect')) {
+                        iconClass = 'fa-arrow-right-arrow-left';
+                    } else if (title.includes('staff') || title.includes('personnel') || title.includes('assist')) {
+                        iconClass = 'fa-user-group';
+                    } else if (title.includes('entry') || title.includes('exit') || title.includes('door') || title.includes('access')) {
+                        iconClass = 'fa-door-open';
+                    } else if (title.includes('route') || title.includes('path') || title.includes('way')) {
+                        iconClass = 'fa-route';
+                    } else if (title.includes('sign') || title.includes('alert') || title.includes('notify')) {
+                        iconClass = 'fa-triangle-exclamation';
+                    } else if (title.includes('monitor') || title.includes('watch') || title.includes('camera')) {
+                        iconClass = 'fa-video';
+                    }
+                    
+                    const solutionHtml = `
+                        <div class="solution-item">
+                            <div class="solution-icon">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div class="solution-content">
+                                <h5>${solution.title} <small class="badge bg-success">Solution</small></h5>
+                                <p>${solution.description}</p>
+                            </div>
+                        </div>
+                    `;
+                    container.append(solutionHtml);
+                });
+            }
+            
+            // Update floor selection
+            $('.floor-btn').click(function() {
+                const floor = $(this).data('floor');
+                $('.floor-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                $.ajax({
+                    url: `${BASE_URL}/change_floor`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({floor: floor}),
+                    success: function(response) {
+                        console.log(response.message);
+                    }
+                });
+            });
+            
+            // Update threshold
+            $('#updateThresholdBtn').click(function() {
+                const threshold = $('#thresholdInput').val();
+                $.ajax({
+                    url: `${BASE_URL}/update_threshold`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({threshold: threshold}),
+                    success: function(response) {
+                        console.log(response.message);
+                        alert('Threshold updated successfully!');
+                    }
+                });
+            });
+            
+            // Check status periodically
+            setInterval(checkStatus, 2000);
+            
+            // Initial status check
+            checkStatus();
+        });
+    </script>
+</body>
+</html>
