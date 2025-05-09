@@ -55,6 +55,11 @@
             color: white;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
+        .view-mode-btn.active {
+            background-color: #0d6efd;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
         .management-card {
             background-color: #f1f8ff;
         }
@@ -168,6 +173,22 @@
 
                 <div class="card">
                     <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">View Mode</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="viewModeButtons">
+                            {% for label, mode in view_modes.items() %}
+                                <button class="btn btn-outline-primary view-mode-btn mb-2 w-100" 
+                                        data-mode="{{ mode }}">
+                                    {{ label }}
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
                         <h5 class="mb-0">Crowd Threshold Settings</h5>
                     </div>
                     <div class="card-body">
@@ -228,6 +249,12 @@
                     // Update solutions
                     if (data.solutions && data.solutions.length > 0) {
                         updateSolutions(data.solutions);
+                    }
+                    
+                    // Update active view mode button
+                    if (data.view_mode) {
+                        $('.view-mode-btn').removeClass('active');
+                        $(`.view-mode-btn[data-mode="${data.view_mode}"]`).addClass('active');
                     }
                 }).fail(function() {
                     console.error("Failed to fetch status");
@@ -292,6 +319,23 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({floor: floor}),
+                    success: function(response) {
+                        console.log(response.message);
+                    }
+                });
+            });
+            
+            // Update view mode
+            $('.view-mode-btn').click(function() {
+                const mode = $(this).data('mode');
+                $('.view-mode-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                $.ajax({
+                    url: `${BASE_URL}/change_view_mode`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({view_mode: mode}),
                     success: function(response) {
                         console.log(response.message);
                     }
